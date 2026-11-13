@@ -26,13 +26,19 @@ fi
 echo "[*] Streaming APK to session $SESSION_ID..." >> "$LOG_FILE"
 cat "$SRC_APK" | /system/bin/pm install-write -S "$SIZE" "$SESSION_ID" base - >> "$LOG_FILE" 2>&1
 
-echo "[*] Committing install session $SESSION_ID..." >> "$LOG_FILE"
-/system/bin/pm install-commit "$SESSION_ID" >> "$LOG_FILE" 2>&1
-RES=$?
-echo "[*] install-commit exited with code $RES" >> "$LOG_FILE"
+echo "[*] Scheduling install-commit in background..." >> "$LOG_FILE"
+(
+    sleep 2
+    echo "[*] Committing install session $SESSION_ID..." >> "$LOG_FILE"
+    /system/bin/pm install-commit "$SESSION_ID" >> "$LOG_FILE" 2>&1
+    RES=$?
+    echo "[*] install-commit exited with code $RES" >> "$LOG_FILE"
+    if [ $RES -eq 0 ]; then
+        echo "[*] Installation successful! Relaunching Antigravity..." >> "$LOG_FILE"
+        sleep 1
+        /system/bin/monkey -p com.agy -c android.intent.category.LAUNCHER 1 >> "$LOG_FILE" 2>&1
+    fi
+) &
 
-if [ $RES -eq 0 ]; then
-    echo "[*] Installation successful! Relaunching Antigravity..." >> "$LOG_FILE"
-    sleep 1
-    /system/bin/monkey -p com.agy -c android.intent.category.LAUNCHER 1 >> "$LOG_FILE" 2>&1
-fi
+echo "[*] Commit scheduled. Stream complete!" >> "$LOG_FILE"
+exit 0
