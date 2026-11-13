@@ -60,6 +60,7 @@ public final class CoreServerService extends Service {
         supervisor.start();
 
         SandboxedProcessProtector.start();
+        com.agy.ui.webview.LocalAssetServer.prewarm(this);
         startBackgroundDaemon();
     }
 

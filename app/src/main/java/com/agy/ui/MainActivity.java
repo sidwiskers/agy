@@ -59,6 +59,7 @@ public class MainActivity extends Activity
     private static final long POLL_READY_INTERVAL_MS = 1000;
 
     public static volatile MainActivity activeActivity;
+    public static volatile String pendingSharedText = null;
 
     private ValueCallback<Uri[]> filePathCallback;
 
@@ -169,6 +170,7 @@ public class MainActivity extends Activity
 
         startCoreService();
         acquireUiWakeLock();
+        handleShareIntent(getIntent());
     }
 
     private void startCoreService() {
@@ -217,6 +219,16 @@ public class MainActivity extends Activity
     public void dismissSplash() {
         Log.i(TAG, "dismissSplash: fading out splashView (280ms)");
         splash.dismiss();
+        if (pendingSharedText != null) {
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if (pendingSharedText != null) {
+                        dispatchSharedContentToWebView(pendingSharedText);
+                    }
+                }
+            }, 600);
+        }
     }
 
     public boolean isDesktopMode() {
@@ -319,6 +331,58 @@ public class MainActivity extends Activity
     protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        handleShareIntent(intent);
+    }
+
+    private void handleShareIntent(Intent intent) {
+        if (intent == null) return;
+        String action = intent.getAction();
+        String type = intent.getType();
+        if (Intent.ACTION_SEND.equals(action) && type != null) {
+            if ("text/plain".equals(type) || type.startsWith("text/")) {
+                String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
+                if (sharedText == null) {
+                    sharedText = intent.getStringExtra(Intent.EXTRA_SUBJECT);
+                }
+                if (sharedText != null && !sharedText.trim().isEmpty()) {
+                    pendingSharedText = sharedText;
+                    dispatchSharedContentToWebView(sharedText);
+                }
+            } else {
+                Uri streamUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+                if (streamUri != null) {
+                    pendingSharedText = "Shared resource: " + streamUri.toString();
+                    dispatchSharedContentToWebView(pendingSharedText);
+                }
+            }
+        } else if (Intent.ACTION_SEND_MULTIPLE.equals(action) && type != null) {
+            ArrayList<Uri> streamUris = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (streamUris != null && !streamUris.isEmpty()) {
+                StringBuilder sb = new StringBuilder("Shared resources:\n");
+                for (Uri u : streamUris) {
+                    sb.append(u.toString()).append("\n");
+                }
+                pendingSharedText = sb.toString();
+                dispatchSharedContentToWebView(pendingSharedText);
+            }
+        }
+    }
+
+    public void dispatchSharedContentToWebView(final String content) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webViewHost != null && webViewHost.getWebView() != null && content != null) {
+                    String escaped = org.json.JSONObject.quote(content);
+                    webViewHost.getWebView().evaluateJavascript(
+                            "(function(){ " +
+                            "  window.__AG_PENDING_SHARE__ = " + escaped + "; " +
+                            "  try { window.dispatchEvent(new CustomEvent('agy:shared-content', { detail: { text: " + escaped + " } })); } catch(e){} " +
+                            "})();",
+                            null);
+                }
+            }
+        });
     }
 
     @Override

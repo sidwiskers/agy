@@ -67,6 +67,12 @@ if (!window.nativeNotifications) {
       }
       return Promise.resolve(true);
     },
+    updateProgress: function (title, status, isGenerating) {
+      if (window.Android && typeof window.Android.updateNotificationProgress === 'function') {
+        window.Android.updateNotificationProgress(title, status, !!isGenerating);
+      }
+      return Promise.resolve(true);
+    },
     onClicked: function (cb) {
       if (typeof cb === 'function') {
         notificationListeners.push(cb);
@@ -80,6 +86,56 @@ if (!window.nativeNotifications) {
     }
   };
 }
+
+// Android Share Sheet Receiver (ACTION_SEND)
+(function() {
+  function fillPromptBox(text) {
+    if (!text) return false;
+    var input = document.querySelector('textarea, [contenteditable="true"]');
+    if (input) {
+      if (input.tagName === 'TEXTAREA') {
+        input.value = (input.value ? input.value + '\n\n' : '') + text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+      } else {
+        input.innerText = (input.innerText ? input.innerText + '\n\n' : '') + text;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      input.focus();
+      return true;
+    }
+    return false;
+  }
+
+  window.addEventListener('agy:shared-content', function(e) {
+    var text = (e && e.detail && e.detail.text) || window.__AG_PENDING_SHARE__;
+    if (!text) return;
+    if (!fillPromptBox(text)) {
+      var attempts = 0;
+      var timer = setInterval(function() {
+        attempts++;
+        if (fillPromptBox(text) || attempts > 25) {
+          clearInterval(timer);
+          window.__AG_PENDING_SHARE__ = null;
+        }
+      }, 400);
+    } else {
+      window.__AG_PENDING_SHARE__ = null;
+    }
+  });
+
+  window.addEventListener('load', function() {
+    setTimeout(function() {
+      if (window.Android && typeof window.Android.getPendingSharedText === 'function') {
+        var pending = window.Android.getPendingSharedText();
+        if (pending && pending.length > 0) {
+          window.dispatchEvent(new CustomEvent('agy:shared-content', { detail: { text: pending } }));
+          window.Android.clearPendingSharedText();
+        }
+      }
+    }, 1200);
+  });
+})();
 
 
 })();

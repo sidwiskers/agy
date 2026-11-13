@@ -117,9 +117,29 @@ public final class AndroidBridge {
                             }
                         } catch (Exception ignored) {}
                     }
+                    try {
+                        com.agy.core.ForegroundNotification.updateProgress(act, "Antigravity", message, false);
+                    } catch (Exception ignored) {}
                 }
             });
         }
+    }
+
+    @JavascriptInterface
+    public void updateNotificationProgress(final String title, final String status, final boolean isGenerating) {
+        final MainActivity act = activityRef != null ? activityRef.get() : MainActivity.activeActivity;
+        com.agy.core.ForegroundNotification.updateProgress(act, title, status, isGenerating);
+    }
+
+    @JavascriptInterface
+    public String getPendingSharedText() {
+        String text = MainActivity.pendingSharedText;
+        return text != null ? text : "";
+    }
+
+    @JavascriptInterface
+    public void clearPendingSharedText() {
+        MainActivity.pendingSharedText = null;
     }
 
     // Native-only helpers used while preparing the trusted app document.
