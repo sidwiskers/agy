@@ -1,0 +1,37 @@
+# Build directories and outputs
+build/
+dist/
+cache/
+*.apk
+*.dex
+*.class
+
+# Archives and binaries (heavy dependencies hosted via GitHub Releases)
+*.tar
+*.tar.gz
+*.tar.xz
+*.bin
+*.idsig
+*.zip
+*.jar
+web.old_backup/
+env/dist/
+web/generated/main.js
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary and log files
+*.log
+*.tmp
+temp/
+standalone_runtime/
+
+# IDE and OS
+.DS_Store
+*.swp
+*~
+.idea/
+.vscode/
