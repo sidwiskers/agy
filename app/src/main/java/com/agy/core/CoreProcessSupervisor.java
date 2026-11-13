@@ -177,6 +177,7 @@ public final class CoreProcessSupervisor {
                 CoreRuntimeState.lastError = null;
                 CoreRuntimeState.restarting = false;
                 CoreRuntimeState.readyGeneration++;
+                com.agy.tile.AgyTileService.requestUpdate(appContext);
                 String readyStatus = "core ready on 127.0.0.1:" + port;
                 Log.i(TAG, readyStatus);
                 CoreLogWriter.writeLine(log, readyStatus);

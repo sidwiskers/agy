@@ -8387,7 +8387,7 @@
   --ease-cubic-out: cubic-bezier(0.23, 1, 0.32, 1);
 }
 :root {
-  --background: #101010;
+  --background: #000000;
   --foreground: #cccccc;
   --primary: #007acc;
   --primary-foreground: #ffffff;

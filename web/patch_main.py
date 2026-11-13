@@ -5,6 +5,9 @@ web/patch_main.py - Dynamic patcher for web/main.js.
 1. Locates the Appearance settings block and injects the Desktop Mode toggle.
 2. Locates the vKa trajectory state manager class and injects host-resume
    stream reconnect/recovery logic to prevent UI stalling when backgrounded.
+3. Injects live notification shade and lockscreen progress callbacks into
+   Hca (ConnectRPC StreamAgentStateUpdates) and Hja (state provider sync).
+4. Patches default dark themes and Vesper to pure AMOLED pitch black (#000000).
 Safe, idempotent, and resilient to upstream changes.
 """
 
@@ -92,12 +95,82 @@ def patch_trajectory_resume(content):
     states_prop = m.group(2)
     injected = (
         orig
-        + f"this.refresh=()=>{{try{{if(this._factory&&this.{states_prop}){{for(let [c,e]of this.{states_prop}.entries()){{let b=c,f=e;try{{f.link&&f.link.dispose()}}catch(_){{}}try{{f.underlyingProvider&&f.underlyingProvider.dispose()}}catch(_){{}}f.underlyingProvider=this._factory(b);f.link=Hja(f.underlyingProvider,f.provider,{{omitInitial:!0}});}}}}}}catch(err){{console.warn(\"[vKa] refresh error:\",err)}}}};"
+        + f"this.refresh=()=>{{try{{if(this._factory&&this.{states_prop}){{for(let [c,e]of this.{states_prop}.entries()){{let b=c,f=e;try{{f.link&&f.link.dispose()}}catch(_){{}}try{{f.underlyingProvider&&f.underlyingProvider.dispose()}}catch(_){{}}f.underlyingProvider=this._factory(b);f.link=Hja(f.underlyingProvider,f.provider,{{omitInitial:!0}});try{{if(window.__agUpdateProgress&&f.provider&&f.provider.getState){{window.__agUpdateProgress(f.provider.getState())}}}}catch(_){{}}}}}}}}catch(err){{console.warn(\"[vKa] refresh error:\",err)}}}};"
         + "window.__agTrajManager=this;"
         + "window.addEventListener(\"agy:host-resume\",()=>{{this.refresh()}});"
     )
     content = content.replace(orig, injected, 1)
     print("[web-patch] Successfully patched Trajectory resume recovery into main.js")
+    return content
+
+def patch_notification_progress(content):
+    if "window.__agUpdateProgress&&window.__agUpdateProgress(B)" in content:
+        print("[web-patch] Notification progress hook already present in main.js")
+        return content
+
+    # 1. Hook Hca (ConnectRPC stream handler)
+    hca_target = "c(B),t?.(B)"
+    if hca_target in content:
+        content = content.replace(
+            hca_target,
+            "c(B),t?.(B),window.__agUpdateProgress&&window.__agUpdateProgress(B)",
+            1
+        )
+        print("[web-patch] Successfully hooked Hca agent state stream for notifications")
+    else:
+        print("[web-patch] WARNING: Hca target not found in main.js", file=sys.stderr)
+
+    # 2. Hook Hja (state provider event link)
+    hja_target = "a.onDidChange(e=>b.setState(e))"
+    if hja_target in content:
+        content = content.replace(
+            hja_target,
+            "a.onDidChange(e=>{b.setState(e);window.__agUpdateProgress&&window.__agUpdateProgress(e)})",
+            1
+        )
+        print("[web-patch] Successfully hooked Hja state provider link for notifications")
+    else:
+        print("[web-patch] WARNING: Hja target not found in main.js", file=sys.stderr)
+
+    return content
+
+def patch_amoled_theme(content):
+    patched = False
+    # 1. SY default dark theme preset
+    sy_target = 'SY={background:"#101010",foreground:"#cccccc",primary:"#007acc"}'
+    if sy_target in content:
+        content = content.replace(
+            sy_target,
+            'SY={background:"#000000",foreground:"#cccccc",primary:"#007acc"}',
+            1
+        )
+        patched = True
+
+    # 2. "Default Dark" theme preset
+    def_dark_target = '"Default Dark":{background:"#101010"'
+    if def_dark_target in content:
+        content = content.replace(
+            def_dark_target,
+            '"Default Dark":{background:"#000000"',
+            1
+        )
+        patched = True
+
+    # 3. "Vesper" dark theme preset
+    vesper_target = 'Vesper:{background:"#101010"'
+    if vesper_target in content:
+        content = content.replace(
+            vesper_target,
+            'Vesper:{background:"#000000"',
+            1
+        )
+        patched = True
+
+    if patched:
+        print("[web-patch] Successfully patched dark themes to pure AMOLED (#000000)")
+    else:
+        print("[web-patch] AMOLED theme patterns already applied or not matched")
+
     return content
 
 def patch_main(file_path):
@@ -110,6 +183,8 @@ def patch_main(file_path):
 
     new_content = patch_desktop_mode(content)
     new_content = patch_trajectory_resume(new_content)
+    new_content = patch_notification_progress(new_content)
+    new_content = patch_amoled_theme(new_content)
 
     if new_content != content:
         with open(file_path, "w", encoding="utf-8") as f:

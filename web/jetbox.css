@@ -1082,7 +1082,7 @@
   --sdk-color-black: #000000;
   --sdk-color-surface: #191919;
   --sdk-color-surface-alt: #151515;
-  --sdk-color-canvas: #101010;
+  --sdk-color-canvas: #000000;
   --sdk-color-border-base: rgba(255, 255, 255, 0.08);
   --sdk-color-border-light: rgba(255, 255, 255, 0.05);
   --sdk-color-border-dark: rgba(255, 255, 255, 0.14);
@@ -1109,7 +1109,7 @@
   --sdk-background-primary: #191919;
   --sdk-background-secondary: #151515;
   --sdk-background-tertiary: #272727;
-  --sdk-background-viewport: #101010;
+  --sdk-background-viewport: #000000;
 
   /* ── Text ────────────────────────────────── */
 

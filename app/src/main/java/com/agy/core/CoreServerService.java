@@ -49,6 +49,7 @@ public final class CoreServerService extends Service {
         CoreRuntimeState.serverUrl = null;
 
         ForegroundNotification.start(this);
+        com.agy.tile.AgyTileService.requestUpdate(this);
         wakeLock = new WakeLockHolder();
         wakeLock.acquire(this);
 
@@ -127,6 +128,7 @@ public final class CoreServerService extends Service {
                 }
                 ForegroundNotification.update(CoreServerService.this,
                         "Core stopped — open app to retry");
+                com.agy.tile.AgyTileService.requestUpdate(CoreServerService.this);
             }
         });
     }
@@ -156,6 +158,7 @@ public final class CoreServerService extends Service {
         CoreRuntimeState.serverUrl = null;
         CoreRuntimeState.lastError = null;
         CoreRuntimeState.restarting = false;
+        com.agy.tile.AgyTileService.requestUpdate(this);
         super.onDestroy();
     }
 

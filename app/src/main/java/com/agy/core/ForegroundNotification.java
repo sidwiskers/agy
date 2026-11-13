@@ -17,11 +17,15 @@ public final class ForegroundNotification {
     private static final String TAG = "ForegroundNotification";
     public static final int NOTIFICATION_ID = 1001;
     public static final String CHANNEL_ID = "core_channel";
+    private static volatile Context sAppContext = null;
 
     private ForegroundNotification() {
     }
 
     public static void start(Service service) {
+        if (service != null) {
+            sAppContext = service.getApplicationContext();
+        }
         ensureChannel(service);
         Notification notification = build(service, "Antigravity", "Core active", false);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -37,6 +41,9 @@ public final class ForegroundNotification {
     }
 
     public static void updateProgress(Context context, String title, String status, boolean isGenerating) {
+        if (context == null) {
+            context = sAppContext;
+        }
         if (context == null) return;
         try {
             ensureChannel(context);
@@ -59,6 +66,7 @@ public final class ForegroundNotification {
                         CHANNEL_ID, "Antigravity Service", NotificationManager.IMPORTANCE_LOW);
                 channel.setDescription("Background core service and task execution progress");
                 channel.setShowBadge(false);
+                channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
                 manager.createNotificationChannel(channel);
             }
         }
@@ -83,11 +91,27 @@ public final class ForegroundNotification {
                 ? new Notification.Builder(context, CHANNEL_ID)
                 : new Notification.Builder(context);
 
-        builder.setContentTitle(title != null && !title.isEmpty() ? title : "Antigravity")
-                .setContentText(status != null && !status.isEmpty() ? status : "Core active")
+        String effectiveTitle = title != null && !title.isEmpty() ? title : "Antigravity";
+        String effectiveStatus = status != null && !status.isEmpty() ? status : (isGenerating ? "Generating..." : "Core active");
+
+        builder.setContentTitle(effectiveTitle)
+                .setContentText(effectiveStatus)
                 .setSmallIcon(icon)
                 .setContentIntent(contentPendingIntent)
-                .setOngoing(true);
+                .setOngoing(true)
+                .setOnlyAlertOnce(true)
+                .setVisibility(Notification.VISIBILITY_PUBLIC)
+                .setShowWhen(true);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            builder.setSubText(isGenerating ? "Generating" : "Ready");
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            builder.setCategory(isGenerating ? Notification.CATEGORY_PROGRESS : Notification.CATEGORY_SERVICE);
+        }
+
+        builder.setStyle(new Notification.BigTextStyle().bigText(effectiveStatus));
 
         if (isGenerating) {
             builder.setProgress(0, 0, true);

@@ -24,15 +24,16 @@ public final class AndroidBridge {
     private final ThemeBridge themeBridge;
     private final EngineBridge engine;
     private final EngineConfigJson config;
+    private final Context appContext;
     private final String blobBridgeToken = createBlobBridgeToken();
     private volatile WeakReference<MainActivity> activityRef;
 
     public AndroidBridge(Context context, RuntimeManager runtime,
                          ShizukuBridge shizuku, ThemeManager theme) {
-        Context appContext = context.getApplicationContext();
+        this.appContext = context.getApplicationContext();
         this.themeBridge = new ThemeBridge(theme);
         this.engine = new EngineBridge(runtime);
-        this.config = new EngineConfigJson(appContext, runtime, engine, shizuku, themeBridge);
+        this.config = new EngineConfigJson(this.appContext, runtime, engine, shizuku, themeBridge);
     }
 
     /** Host activity, used to dismiss the native splash once the UI has painted. */
@@ -128,7 +129,7 @@ public final class AndroidBridge {
     @JavascriptInterface
     public void updateNotificationProgress(final String title, final String status, final boolean isGenerating) {
         final MainActivity act = activityRef != null ? activityRef.get() : MainActivity.activeActivity;
-        com.agy.core.ForegroundNotification.updateProgress(act, title, status, isGenerating);
+        com.agy.core.ForegroundNotification.updateProgress(act != null ? act : appContext, title, status, isGenerating);
     }
 
     @JavascriptInterface
