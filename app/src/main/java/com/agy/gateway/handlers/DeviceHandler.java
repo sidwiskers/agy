@@ -81,7 +81,11 @@ public final class DeviceHandler {
             if (vibrator != null && vibrator.hasVibrator()) {
                 long duration = payload.optLong("duration_ms", 100);
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE));
+                    android.media.AudioAttributes attrs = new android.media.AudioAttributes.Builder()
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .setUsage(android.media.AudioAttributes.USAGE_NOTIFICATION)
+                            .build();
+                    vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE), attrs);
                 } else {
                     vibrator.vibrate(duration);
                 }
