@@ -98,6 +98,30 @@ public final class AndroidBridge {
         ui.setDesktopMode(enabled);
     }
 
+    @JavascriptInterface
+    public void showToast(final String message, final boolean playSound) {
+        final MainActivity act = activityRef != null ? activityRef.get() : MainActivity.activeActivity;
+        if (act != null) {
+            act.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        android.widget.Toast.makeText(act, message, android.widget.Toast.LENGTH_LONG).show();
+                    } catch (Exception ignored) {}
+                    if (playSound) {
+                        try {
+                            android.net.Uri uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+                            android.media.Ringtone r = android.media.RingtoneManager.getRingtone(act, uri);
+                            if (r != null) {
+                                r.play();
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            });
+        }
+    }
+
     // Native-only helpers used while preparing the trusted app document.
     public boolean isEngineReady() {
         return engine.isReady();

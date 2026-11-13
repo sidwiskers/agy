@@ -39,3 +39,43 @@ try {
     } catch (_) {}
   });
 } catch (_) {}
+
+// Native Android notifications bridge for Antigravity web UI
+if (!window.nativeNotifications) {
+  var notificationListeners = [];
+  window.nativeNotifications = {
+    send: function (notification) {
+      if (!notification) return Promise.resolve(true);
+      var title = notification.title || 'Antigravity';
+      var body = notification.body || notification.message || 'Task completed';
+      var text = title + ': ' + body;
+
+      if (window.Android && typeof window.Android.showToast === 'function') {
+        window.Android.showToast(text, true);
+      } else {
+        try {
+          fetch('http://127.0.0.1:45160/gateway', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              command: 'toast',
+              payload: { message: text, duration: 'long', sound: true }
+            })
+          }).catch(function () {});
+        } catch (_) {}
+      }
+      return Promise.resolve(true);
+    },
+    onClicked: function (cb) {
+      if (typeof cb === 'function') {
+        notificationListeners.push(cb);
+      }
+    },
+    openSystemPreferences: function () {
+      return Promise.resolve(true);
+    },
+    clearNotifications: function () {
+      return Promise.resolve(true);
+    }
+  };
+}
