@@ -1,0 +1,45 @@
+#!/data/user/0/com.agy/files/usr/bin/bash
+# agy-toast - Display an Android Toast notification and play notification chime via Gateway API
+set -euo pipefail
+
+PORT_FILE="${HOME}/logs/gateway.port"
+if [[ -f "$PORT_FILE" ]]; then
+    GATEWAY_PORT=$(cat "$PORT_FILE")
+else
+    GATEWAY_PORT="${AGY_GATEWAY_PORT:-45160}"
+fi
+GATEWAY_URL="http://127.0.0.1:${GATEWAY_PORT}/gateway"
+
+MSG="${1:-Task completed!}"
+DURATION="long"
+SOUND="true"
+
+# Check arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --short)
+            DURATION="short"
+            shift
+            ;;
+        --no-sound)
+            SOUND="false"
+            shift
+            ;;
+        *)
+            MSG="$*"
+            break
+            ;;
+    esac
+done
+
+# Try Gateway API first
+RESP=$(curl -s -X POST "$GATEWAY_URL" \
+    -H "Content-Type: application/json" \
+    -d "{\"command\":\"toast\",\"payload\":{\"message\":\"$MSG\",\"duration\":\"$DURATION\",\"sound\":$SOUND}}" 2>/dev/null || true)
+
+if [[ "$RESP" != *"\"ok\":true"* ]]; then
+    # Fallback via am broadcast or termux
+    if command -v termux-toast >/dev/null 2>&1; then
+        termux-toast -s "$MSG" 2>/dev/null || true
+    fi
+fi

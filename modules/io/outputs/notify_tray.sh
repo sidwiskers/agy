@@ -19,13 +19,16 @@ else
     echo "[NOTIFY] $EVENT_NAME: $MESSAGE"
 fi
 
-# Trigger subtle haptic pulse for completions and errors
+# Trigger toast with sound and subtle haptic pulse for completions and errors
 case "$EVENT_NAME" in
     *completed*|*done*)
+        if command -v agy-toast >/dev/null 2>&1; then
+            agy-toast "Antigravity: $MESSAGE" >/dev/null 2>&1 || true
+        else
+            curl -s -X POST http://127.0.0.1:45160/gateway -H "Content-Type: application/json" -d '{"command":"toast","payload":{"message":"Antigravity: '"$MESSAGE"'","sound":true}}' >/dev/null 2>&1 || true
+        fi
         if command -v agy-vibrate >/dev/null 2>&1; then
             agy-vibrate success >/dev/null 2>&1 || true
-        else
-            curl -s -X POST http://127.0.0.1:45160/gateway -H "Content-Type: application/json" -d '{"command":"vibrate","payload":{"duration_ms":150}}' >/dev/null 2>&1 || true
         fi
         ;;
     *error*|*fail*)

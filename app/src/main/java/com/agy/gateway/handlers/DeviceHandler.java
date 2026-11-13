@@ -106,9 +106,27 @@ public final class DeviceHandler {
     public JSONObject handleToast(JSONObject payload) {
         JSONObject resp = new JSONObject();
         try {
-            String message = payload.optString("message", "");
-            boolean isLong = "long".equalsIgnoreCase(payload.optString("duration"));
-            mainHandler.post(() -> Toast.makeText(context, message, isLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show());
+            String message = payload.optString("message", "Task completed");
+            boolean isLong = !"short".equalsIgnoreCase(payload.optString("duration"));
+            boolean playSound = payload.optBoolean("sound", true);
+            mainHandler.post(() -> {
+                try {
+                    Toast.makeText(context, message, isLong ? Toast.LENGTH_LONG : Toast.LENGTH_SHORT).show();
+                } catch (Exception e) {
+                    android.util.Log.w("DeviceHandler", "Toast display failed", e);
+                }
+                if (playSound) {
+                    try {
+                        android.net.Uri uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
+                        android.media.Ringtone r = android.media.RingtoneManager.getRingtone(context, uri);
+                        if (r != null) {
+                            r.play();
+                        }
+                    } catch (Exception e) {
+                        android.util.Log.w("DeviceHandler", "Notification sound failed", e);
+                    }
+                }
+            });
             resp.put("ok", true);
         } catch (Exception e) {
             try {
