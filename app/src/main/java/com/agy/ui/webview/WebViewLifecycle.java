@@ -20,26 +20,23 @@ public final class WebViewLifecycle {
             webView.onResume();
             webView.resumeTimers();
             webView.evaluateJavascript(
-                    "(function(){ try { window.dispatchEvent(new CustomEvent('agy:host-resume')); } catch(e){} })();",
+                    "(function(){ " +
+                    "  try { window.dispatchEvent(new CustomEvent('agy:host-resume')); } catch(e){} " +
+                    "  try { window.dispatchEvent(new Event('resize')); } catch(e){} " +
+                    "  try { window.dispatchEvent(new Event('focus')); } catch(e){} " +
+                    "})();",
                     null);
         } catch (Exception e) {
             Log.w(TAG, "failed to resume webView", e);
         }
     }
 
-    /** Pauses page rendering while the host activity is not visible, keeping JS timers active. */
+    /** Called while host activity is paused; intentionally a no-op to keep UI rendering and streams alive. */
     public static void pause(WebView webView) {
-        if (webView == null) {
-            return;
-        }
-        try {
-            // Pause Chromium rendering/GPU drawing to conserve screen power,
-            // but DO NOT call webView.pauseTimers() so that background
-            // WebSockets, streaming tokens, and JavaScript timers continue executing.
-            webView.onPause();
-        } catch (Exception e) {
-            Log.w(TAG, "failed to pause webView", e);
-        }
+        // DO NOT call webView.onPause() or webView.pauseTimers()!
+        // Calling webView.onPause() tells Chromium to suspend its compositor and mark
+        // WebContents as hidden, which freezes streaming chat tokens and DOM updates.
+        // Leaving it active keeps the UI and token streaming alive continuously.
     }
 
     public static void freeMemory(WebView webView) {
