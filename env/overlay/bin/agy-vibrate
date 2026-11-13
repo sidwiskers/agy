@@ -1,0 +1,45 @@
+#!/data/user/0/com.agy/files/usr/bin/bash
+# agy-vibrate - Trigger haptic feedback vibration via Antigravity Gateway API
+set -euo pipefail
+
+PORT_FILE="${HOME}/logs/gateway.port"
+if [[ -f "$PORT_FILE" ]]; then
+    GATEWAY_PORT=$(cat "$PORT_FILE")
+else
+    GATEWAY_PORT="${AGY_GATEWAY_PORT:-45160}"
+fi
+GATEWAY_URL="http://127.0.0.1:${GATEWAY_PORT}/gateway"
+
+vibe() {
+    local ms="${1:-150}"
+    curl -s -X POST "$GATEWAY_URL" \
+        -H "Content-Type: application/json" \
+        -d "{\"command\":\"vibrate\",\"payload\":{\"duration_ms\":$ms}}" >/dev/null 2>&1 || true
+}
+
+ARG="${1:-150}"
+
+case "$ARG" in
+    success|done|completed)
+        vibe 120
+        sleep 0.1
+        vibe 180
+        ;;
+    error|fail)
+        vibe 250
+        sleep 0.12
+        vibe 250
+        ;;
+    pulse|double)
+        vibe 100
+        sleep 0.08
+        vibe 100
+        ;;
+    [0-9]*)
+        vibe "$ARG"
+        ;;
+    *)
+        echo "Usage: agy-vibrate [ms | success | error | pulse]" >&2
+        exit 1
+        ;;
+esac

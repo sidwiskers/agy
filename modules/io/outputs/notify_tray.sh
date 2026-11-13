@@ -21,8 +21,19 @@ fi
 
 # Trigger subtle haptic pulse for completions and errors
 case "$EVENT_NAME" in
-    *completed*|*done*|*error*)
-        curl -s -X POST http://127.0.0.1:45160/gateway -H "Content-Type: application/json" -d '{"command":"vibrate","duration_ms":120}' >/dev/null 2>&1 || true
+    *completed*|*done*)
+        if command -v agy-vibrate >/dev/null 2>&1; then
+            agy-vibrate success >/dev/null 2>&1 || true
+        else
+            curl -s -X POST http://127.0.0.1:45160/gateway -H "Content-Type: application/json" -d '{"command":"vibrate","payload":{"duration_ms":150}}' >/dev/null 2>&1 || true
+        fi
+        ;;
+    *error*|*fail*)
+        if command -v agy-vibrate >/dev/null 2>&1; then
+            agy-vibrate error >/dev/null 2>&1 || true
+        else
+            curl -s -X POST http://127.0.0.1:45160/gateway -H "Content-Type: application/json" -d '{"command":"vibrate","payload":{"duration_ms":250}}' >/dev/null 2>&1 || true
+        fi
         ;;
 esac
 
