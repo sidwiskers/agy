@@ -27,14 +27,16 @@ public final class WebViewLifecycle {
         }
     }
 
-    /** Pauses page callbacks and timers while the host activity is not visible. */
+    /** Pauses page rendering while the host activity is not visible, keeping JS timers active. */
     public static void pause(WebView webView) {
         if (webView == null) {
             return;
         }
         try {
+            // Pause Chromium rendering/GPU drawing to conserve screen power,
+            // but DO NOT call webView.pauseTimers() so that background
+            // WebSockets, streaming tokens, and JavaScript timers continue executing.
             webView.onPause();
-            webView.pauseTimers();
         } catch (Exception e) {
             Log.w(TAG, "failed to pause webView", e);
         }

@@ -21,6 +21,10 @@ public final class NetworkMonitorHolder {
                 @Override
                 public void onNetworkChanged() {
                     NetworkConfigWriter.write(appContext);
+                    com.agy.ui.MainActivity act = com.agy.ui.MainActivity.activeActivity;
+                    if (act != null) {
+                        act.onNetworkChanged();
+                    }
                 }
             });
         }

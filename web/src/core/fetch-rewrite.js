@@ -38,14 +38,32 @@ function installFetchRewrite() {
   function fetchWithStartupRetry(u, opts, retries) {
     return origFetch(u, opts).catch(function (err) {
       if (retries > 0) {
+        var delay = retries > 25 ? 100 : (retries > 10 ? 200 : 500);
         return new Promise(function (resolve) {
           setTimeout(function () {
             resolve(fetchWithStartupRetry(u, opts, retries - 1));
-          }, 120);
+          }, delay);
         });
       }
       throw err;
     });
+  }
+
+  // Mobile Network Switch & Resume Resilience
+  var isReconnecting = false;
+  function handleMobileNetworkResume(event) {
+    if (isReconnecting) return;
+    isReconnecting = true;
+    setTimeout(function() { isReconnecting = false; }, 2000);
+    try {
+      var probeUrl = appendCsrfQuery(coreBase() + '/');
+      origFetch(probeUrl, { method: 'GET', credentials: 'omit', cache: 'no-store' }).catch(function () {});
+    } catch (_) {}
+  }
+
+  if (typeof global.addEventListener === 'function') {
+    global.addEventListener('agy:host-resume', handleMobileNetworkResume, false);
+    global.addEventListener('agy:network-changed', handleMobileNetworkResume, false);
   }
 
   global.fetch = function (resource, init) {

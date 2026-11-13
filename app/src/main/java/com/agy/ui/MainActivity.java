@@ -1,6 +1,7 @@
 package com.agy.ui;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
@@ -9,6 +10,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -68,6 +70,7 @@ public class MainActivity extends Activity
     private WebViewHost webViewHost;
     private SplashController splash;
     private FrameLayout rootLayout;
+    private PowerManager.WakeLock uiWakeLock;
 
     private boolean appLoaded = false;
     private boolean activityResumed = false;
@@ -165,6 +168,7 @@ public class MainActivity extends Activity
         requestStoragePermissions();
 
         startCoreService();
+        acquireUiWakeLock();
     }
 
     private void startCoreService() {
@@ -254,7 +258,55 @@ public class MainActivity extends Activity
                 }
             }
         }
+        releaseUiWakeLock();
         super.onDestroy();
+    }
+
+    private void acquireUiWakeLock() {
+        if (uiWakeLock == null) {
+            try {
+                PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+                if (pm != null) {
+                    uiWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "com.agy:ui-background");
+                    uiWakeLock.setReferenceCounted(false);
+                }
+            } catch (Exception e) {
+                Log.w(TAG, "cannot create ui wakelock", e);
+            }
+        }
+        if (uiWakeLock != null && !uiWakeLock.isHeld()) {
+            try {
+                uiWakeLock.acquire();
+                Log.i(TAG, "acquired UI partial wakelock for background execution");
+            } catch (Exception e) {
+                Log.w(TAG, "acquire ui wakelock failed", e);
+            }
+        }
+    }
+
+    private void releaseUiWakeLock() {
+        if (uiWakeLock != null && uiWakeLock.isHeld()) {
+            try {
+                uiWakeLock.release();
+                Log.i(TAG, "released UI partial wakelock");
+            } catch (Exception e) {
+                Log.w(TAG, "release ui wakelock failed", e);
+            }
+        }
+    }
+
+    /** Dispatches network change event to WebView JavaScript layer. */
+    public void onNetworkChanged() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (webViewHost != null && webViewHost.getWebView() != null) {
+                    webViewHost.getWebView().evaluateJavascript(
+                            "(function(){ try { window.dispatchEvent(new CustomEvent('agy:network-changed')); } catch(e){} })();",
+                            null);
+                }
+            }
+        });
     }
 
     @Override

@@ -1,0 +1,35 @@
+#!/data/user/0/com.agy/files/usr/bin/bash
+# agy-clipboard - Get or set the Android system clipboard via Gateway API
+set -euo pipefail
+
+GATEWAY_PORT="${AGY_GATEWAY_PORT:-45160}"
+GATEWAY_URL="http://127.0.0.1:${GATEWAY_PORT}/gateway"
+
+CMD="${1:-get}"
+
+case "$CMD" in
+    get)
+        RESP=$(curl -s -X POST "$GATEWAY_URL" -H "Content-Type: application/json" -d '{"command":"clipboard","action":"get"}' || true)
+        if command -v jq >/dev/null 2>&1; then
+            echo "$RESP" | jq -r '.text // empty'
+        elif command -v python3 >/dev/null 2>&1; then
+            python3 -c 'import sys, json; data=json.load(sys.stdin); print(data.get("text", ""))' <<< "$RESP"
+        else
+            echo "$RESP" | sed -n 's/.*"text":"\([^"]*\)".*/\1/p'
+        fi
+        ;;
+    set)
+        shift || true
+        if [ "$#" -gt 0 ]; then
+            TEXT="$*"
+        else
+            TEXT=$(cat)
+        fi
+        PAYLOAD=$(python3 -c 'import sys, json; print(json.dumps({"command": "clipboard", "action": "set", "text": sys.argv[1]}))' "$TEXT")
+        curl -s -X POST "$GATEWAY_URL" -H "Content-Type: application/json" -d "$PAYLOAD" >/dev/null || true
+        ;;
+    *)
+        echo "Usage: agy-clipboard [get|set [text]]" >&2
+        exit 1
+        ;;
+esac
