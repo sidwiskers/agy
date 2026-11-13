@@ -173,4 +173,25 @@ public final class AgyWebViewClient extends WebViewClient {
             listener.onPageFinished(url);
         }
     }
+
+    @Override
+    public boolean onRenderProcessGone(WebView v, android.webkit.RenderProcessGoneDetail detail) {
+        Log.w(TAG, "WebView render process gone! didCrash=" + (detail != null && detail.didCrash()));
+        if (com.agy.ui.MainActivity.activeActivity != null) {
+            com.agy.ui.MainActivity.activeActivity.runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        com.agy.core.SandboxedProcessProtector.protectNow();
+                        if (v != null) {
+                            v.reload();
+                        }
+                    } catch (Exception e) {
+                        Log.w(TAG, "failed to reload webView onRenderProcessGone", e);
+                    }
+                }
+            });
+        }
+        return true;
+    }
 }

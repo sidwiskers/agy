@@ -22,6 +22,7 @@ public final class WebViewLifecycle {
             webView.evaluateJavascript(
                     "(function(){ " +
                     "  try { window.dispatchEvent(new CustomEvent('agy:host-resume')); } catch(e){} " +
+                    "  try { if (window.__agTrajManager && typeof window.__agTrajManager.refresh === 'function') window.__agTrajManager.refresh(); } catch(e){} " +
                     "  try { window.dispatchEvent(new Event('resize')); } catch(e){} " +
                     "  try { window.dispatchEvent(new Event('focus')); } catch(e){} " +
                     "})();",

@@ -44,13 +44,17 @@ public final class DnsCollector {
         } catch (Exception e) {
             Log.w(TAG, "DNS discovery failed", e);
         }
-        List<String> servers = new ArrayList<>(ipv4.size() + ipv6.size());
+        List<String> servers = new ArrayList<>(ipv4.size() + ipv6.size() + 3);
         servers.addAll(ipv4);
         servers.addAll(ipv6);
-        if (servers.isEmpty()) {
+        if (!servers.contains("1.1.1.1")) {
             servers.add("1.1.1.1");
-            servers.add("77.88.8.8");
+        }
+        if (!servers.contains("8.8.8.8")) {
             servers.add("8.8.8.8");
+        }
+        if (!servers.contains("77.88.8.8")) {
+            servers.add("77.88.8.8");
         }
         return servers;
     }

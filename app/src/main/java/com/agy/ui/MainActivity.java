@@ -334,12 +334,14 @@ public class MainActivity extends Activity
         if (webViewHost != null) {
             AppLifecycle.pause(webViewHost.getWebView());
         }
+        com.agy.core.SandboxedProcessProtector.protectNow();
         super.onPause();
     }
 
     @Override
     protected void onStop() {
         super.onStop();
+        com.agy.core.SandboxedProcessProtector.protectNow();
         com.agy.theme.LauncherIconSwitcher.onAppBackgrounded(this);
     }
 
@@ -348,6 +350,7 @@ public class MainActivity extends Activity
         super.onResume();
         activityResumed = true;
         activeActivity = this;
+        com.agy.core.SandboxedProcessProtector.protectNow();
         if (webViewHost != null) {
             AppLifecycle.resume(webViewHost.getWebView());
         }

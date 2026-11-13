@@ -59,6 +59,7 @@ public final class CoreServerService extends Service {
                 this::onSupervisorTerminated);
         supervisor.start();
 
+        SandboxedProcessProtector.start();
         startBackgroundDaemon();
     }
 
@@ -131,6 +132,7 @@ public final class CoreServerService extends Service {
 
     @Override
     public void onDestroy() {
+        SandboxedProcessProtector.stop();
         stopBackgroundDaemon();
         if (gatewayServer != null) {
             gatewayServer.stop();

@@ -59,6 +59,11 @@ function installFetchRewrite() {
       var probeUrl = appendCsrfQuery(coreBase() + '/');
       origFetch(probeUrl, { method: 'GET', credentials: 'omit', cache: 'no-store' }).catch(function () {});
     } catch (_) {}
+    try {
+      if (global.__agTrajManager && typeof global.__agTrajManager.refresh === 'function') {
+        global.__agTrajManager.refresh();
+      }
+    } catch (_) {}
   }
 
   if (typeof global.addEventListener === 'function') {

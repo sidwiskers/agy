@@ -2,28 +2,22 @@
 """
 web/patch_main.py - Dynamic patcher for web/main.js.
 
-Locates the Appearance settings block and injects the Desktop Mode toggle
-if not already present. Safe, idempotent, and resilient to upstream changes.
+1. Locates the Appearance settings block and injects the Desktop Mode toggle.
+2. Locates the vKa trajectory state manager class and injects host-resume
+   stream reconnect/recovery logic to prevent UI stalling when backgrounded.
+Safe, idempotent, and resilient to upstream changes.
 """
 
 import sys
 import os
 import re
 
-def patch_main(file_path):
-    if not os.path.isfile(file_path):
-        print(f"[web-patch] file not found: {file_path}", file=sys.stderr)
-        return False
-
-    with open(file_path, "r", encoding="utf-8") as f:
-        content = f.read()
-
+def patch_desktop_mode(content):
     if "Desktop Mode" in content or "ag_desktop_mode" in content:
         print("[web-patch] Desktop Mode toggle already present in main.js")
-        return True
+        return content
 
     # 1. State hook injection pattern in Appearance component:
-    # Matches: var C=g!==3,D=g!==2,E=F=>G=>{F===t&&v(G)}; or legacy var B=f!==3,C=f!==2,D=E=>G=>{E===r&&u(G)};
     hook_pattern = re.compile(r'(var\s+[A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==3,\s*[A-Za-z0-9_$]+=[A-Za-z0-9_$]+!==2,\s*[A-Za-z0-9_$]+=[A-Za-z0-9_$]+=>\s*[A-Za-z0-9_$]+=>\{.*?\};)')
     hook_match = hook_pattern.search(content)
 
@@ -32,7 +26,6 @@ def patch_main(file_path):
     theme_match = None
     react_id = "A"
     if theme_idx != -1:
-        # Search backwards within a reasonable window (e.g. 100 chars) for createElement
         window_start = max(0, theme_idx - 100)
         window_end = min(len(content), theme_idx + 500)
         window_text = content[window_start:window_end]
@@ -44,8 +37,8 @@ def patch_main(file_path):
             react_id = theme_match.group(1)
 
     if not hook_match or not theme_match:
-        print(f"[web-patch] patterns not matched: hook={bool(hook_match)}, theme={bool(theme_match)}", file=sys.stderr)
-        return False
+        print(f"[web-patch] desktop mode patterns not matched: hook={bool(hook_match)}, theme={bool(theme_match)}", file=sys.stderr)
+        return content
 
     orig_hook = hook_match.group(1)
     injected_hook = (
@@ -58,8 +51,6 @@ def patch_main(file_path):
         + orig_hook
     )
 
-    # Detect switch and setting item components
-    # Look for setting item component used with rightElement or contrast setting
     item_comp = "v3"
     switch_comp = "dX"
     re_idx = content.find('rightElement:')
@@ -81,11 +72,49 @@ def patch_main(file_path):
 
     content = content.replace(orig_hook, injected_hook, 1)
     content = content.replace(orig_theme, injected_theme, 1)
+    print("[web-patch] Successfully patched Desktop Mode toggle into main.js")
+    return content
 
-    with open(file_path, "w", encoding="utf-8") as f:
-        f.write(content)
+def patch_trajectory_resume(content):
+    if "__agTrajManager" in content:
+        print("[web-patch] Trajectory resume manager already present in main.js")
+        return content
 
-    print("[web-patch] Successfully patched Desktop Mode toggle into main.js (mobile by default, English)")
+    traj_pattern = re.compile(
+        r'(class vKa\{constructor\([A-Za-z0-9_$]+\)\{this\.([A-Za-z0-9_$]+)=new Map;this\.getAgentStates=\(\)=>this\.\2;this\.setFactory=([A-Za-z0-9_$]+)=>\{this\._factory=\3;for\(let \[([A-Za-z0-9_$]+),([A-Za-z0-9_$]+)\]of this\.\2\.entries\(\)\)\{.*?\}\};)'
+    )
+    m = traj_pattern.search(content)
+    if not m:
+        print("[web-patch] vKa trajectory manager pattern not matched in main.js", file=sys.stderr)
+        return content
+
+    orig = m.group(1)
+    states_prop = m.group(2)
+    injected = (
+        orig
+        + f"this.refresh=()=>{{try{{if(this._factory&&this.{states_prop}){{for(let [c,e]of this.{states_prop}.entries()){{let b=c,f=e;try{{f.link&&f.link.dispose()}}catch(_){{}}try{{f.underlyingProvider&&f.underlyingProvider.dispose()}}catch(_){{}}f.underlyingProvider=this._factory(b);f.link=Hja(f.underlyingProvider,f.provider,{{omitInitial:!0}});}}}}}}catch(err){{console.warn(\"[vKa] refresh error:\",err)}}}};"
+        + "window.__agTrajManager=this;"
+        + "window.addEventListener(\"agy:host-resume\",()=>{{this.refresh()}});"
+    )
+    content = content.replace(orig, injected, 1)
+    print("[web-patch] Successfully patched Trajectory resume recovery into main.js")
+    return content
+
+def patch_main(file_path):
+    if not os.path.isfile(file_path):
+        print(f"[web-patch] file not found: {file_path}", file=sys.stderr)
+        return False
+
+    with open(file_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    new_content = patch_desktop_mode(content)
+    new_content = patch_trajectory_resume(new_content)
+
+    if new_content != content:
+        with open(file_path, "w", encoding="utf-8") as f:
+            f.write(new_content)
+
     return True
 
 if __name__ == "__main__":
