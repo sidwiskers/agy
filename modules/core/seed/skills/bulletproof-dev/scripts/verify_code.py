@@ -11,6 +11,7 @@ import sys
 import os
 import subprocess
 import shutil
+import re
 
 def run_cmd(cmd):
     try:
@@ -83,6 +84,27 @@ def verify_file(path):
         code, out, err = run_cmd(cmd)
         if code != 0 and "No module named" not in err:
             errors.append(f"YAML Syntax Error:\n{err or out}")
+
+    # 7. Check for lazy stubs / incomplete placeholders
+    if ext in [".py", ".js", ".ts", ".tsx", ".java", ".sh"]:
+        try:
+            with open(path, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+            stub_patterns = [
+                r"\bTODO:?\s+implement\b",
+                r"\bFIXME:?\s+implement\b",
+                r"\bpass\s*#\s*to\s*be\s*done\b",
+                r"\b//\s*stub\b",
+                r"\b//\s*placeholder\b",
+            ]
+            for pat in stub_patterns:
+                m = re.search(pat, content, re.IGNORECASE)
+                if m:
+                    errors.append(
+                        f"Incomplete Code Error: Found stub/placeholder '{m.group(0)}' in {os.path.basename(path)}"
+                    )
+        except Exception:
+            pass
 
     if errors:
         return False, errors

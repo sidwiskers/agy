@@ -44,6 +44,14 @@ description: >-
    - **Mandatory Live Verification:** Proactively check local package manifests (`package.json`, `requirements.txt`, etc.) and use `search_web` / `read_url_content` to inspect official current documentation for modern libraries and SDKs prior to writing code.
    - **Verify Every Import:** Every imported function, parameter, and method must be verified against current definitions.
 
+6. **Complete Implementation Invariant (No Lazy Stubs):**
+   - NEVER emit placeholder code, ellipses (`...`), stub comments (`// TODO`, `pass # to be done`), or partial functions.
+   - Every authored piece of code must be 100% complete, fully implemented, and production-ready.
+
+7. **Defensive Engineering & Robustness Invariant:**
+   - Explicit input validation, boundary checking, and typed error handling for all external calls, I/O, and IPC.
+   - No silent exception swallowing or unhandled promises.
+
 ---
 
 ## 2. The 3-Stage Engineering Lifecycle

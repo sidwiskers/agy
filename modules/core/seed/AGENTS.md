@@ -204,4 +204,13 @@ To ensure flawless code quality, eliminate hallucinations, and prevent regressio
      - When using unfamiliar or rapidly evolving APIs, proactively use `search_web` and `read_url_content` to verify the official, up-to-date documentation and migration guides before writing code.
      - Every imported symbol, parameter name, and configuration key must be verified to exist in the target version.
 
+6. **The Complete Implementation Invariant (No Lazy Stubs or Placeholders):**
+   - NEVER emit placeholder code, ellipses (`...`), stub comments (`// TODO`, `// implement later`, `pass # to be done`), or partial functions.
+   - Every single file, class, function, or branch authored must be 100% complete, fully implemented, syntactically verified, and production-ready.
+
+7. **The Defensive Engineering & Robustness Invariant:**
+   - Every external input, network response, file I/O, nullable variable, and IPC boundary must have explicit error handling, type validation, and graceful fallbacks.
+   - Forbid bare `except:` blocks or empty `catch (_) {}` blocks without deliberate, documented rationale.
+   - Code must be robust against edge cases (empty collections, zero-division, missing keys, null objects).
+
 
