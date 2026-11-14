@@ -16,7 +16,7 @@ public final class ForegroundNotification {
 
     private static final String TAG = "ForegroundNotification";
     public static final int NOTIFICATION_ID = 1001;
-    public static final String CHANNEL_ID = "core_channel";
+    public static final String CHANNEL_ID = "antigravity_core_v2";
     private static volatile Context sAppContext = null;
 
     private ForegroundNotification() {
@@ -50,8 +50,10 @@ public final class ForegroundNotification {
             NotificationManager manager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
+                Log.i(TAG, "updateProgress: title=" + title + ", status=" + status + ", isGenerating=" + isGenerating);
                 manager.notify(NOTIFICATION_ID, build(context, title, status, isGenerating));
             }
+            com.agy.tile.AgyTileService.updateAgentProgress(context, status, isGenerating);
         } catch (Exception e) {
             Log.w(TAG, "Failed to update foreground notification", e);
         }
@@ -62,9 +64,14 @@ public final class ForegroundNotification {
             NotificationManager manager =
                     (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
             if (manager != null) {
+                try {
+                    manager.deleteNotificationChannel("core_channel");
+                } catch (Exception ignored) {}
                 NotificationChannel channel = new NotificationChannel(
-                        CHANNEL_ID, "Antigravity Service", NotificationManager.IMPORTANCE_LOW);
-                channel.setDescription("Background core service and task execution progress");
+                        CHANNEL_ID, "Antigravity Core", NotificationManager.IMPORTANCE_DEFAULT);
+                channel.setDescription("Background core service and live task execution progress");
+                channel.setSound(null, null);
+                channel.enableVibration(false);
                 channel.setShowBadge(false);
                 channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
                 manager.createNotificationChannel(channel);
@@ -114,6 +121,7 @@ public final class ForegroundNotification {
         builder.setStyle(new Notification.BigTextStyle().bigText(effectiveStatus));
 
         if (isGenerating) {
+            builder.setWhen(System.currentTimeMillis());
             builder.setProgress(0, 0, true);
         } else {
             builder.setProgress(0, 0, false);

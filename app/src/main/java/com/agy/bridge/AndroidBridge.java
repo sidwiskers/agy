@@ -118,9 +118,6 @@ public final class AndroidBridge {
                             }
                         } catch (Exception ignored) {}
                     }
-                    try {
-                        com.agy.core.ForegroundNotification.updateProgress(act, "Antigravity", message, false);
-                    } catch (Exception ignored) {}
                 }
             });
         }
@@ -129,6 +126,7 @@ public final class AndroidBridge {
     @JavascriptInterface
     public void updateNotificationProgress(final String title, final String status, final boolean isGenerating) {
         final MainActivity act = activityRef != null ? activityRef.get() : MainActivity.activeActivity;
+        android.util.Log.i("AndroidBridge", "updateNotificationProgress: title=" + title + " | status=" + status + " | gen=" + isGenerating);
         com.agy.core.ForegroundNotification.updateProgress(act != null ? act : appContext, title, status, isGenerating);
     }
 
