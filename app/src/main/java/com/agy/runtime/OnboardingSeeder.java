@@ -34,6 +34,8 @@ public final class OnboardingSeeder {
             File configDir = projects.getParentFile();
             if (configDir != null && (configDir.isDirectory() || configDir.mkdirs())) {
                 seedStateFile(appContext, "AGENTS.md", new File(configDir, "AGENTS.md"));
+                // Seed default skills into ~/.gemini/config/skills/
+                seedAssetTree(appContext, RuntimePaths.SEED_ASSET + "/skills", new File(configDir, "skills"));
             }
 
             // The project store resolves its projects here; without the
@@ -63,5 +65,41 @@ public final class OnboardingSeeder {
             AtomicFileWriter.writeText(target, content);
         }
         Log.i(TAG, "seeded onboarding state (was missing): " + target);
+    }
+
+    private static void seedAssetTree(Context appContext, String assetDir, File targetDir) {
+        try {
+            String[] list = appContext.getAssets().list(assetDir);
+            if (list == null || list.length == 0) return;
+            if (!targetDir.exists()) targetDir.mkdirs();
+            for (String file : list) {
+                String subAsset = assetDir + "/" + file;
+                File subTarget = new File(targetDir, file);
+                String[] subList = appContext.getAssets().list(subAsset);
+                if (subList != null && subList.length > 0) {
+                    seedAssetTree(appContext, subAsset, subTarget);
+                } else {
+                    if (!subTarget.isFile() || subTarget.length() == 0) {
+                        try (InputStream in = appContext.getAssets().open(subAsset)) {
+                            byte[] buffer = new byte[8192];
+                            int read;
+                            File tmp = new File(subTarget.getAbsolutePath() + ".tmp");
+                            try (java.io.FileOutputStream out = new java.io.FileOutputStream(tmp)) {
+                                while ((read = in.read(buffer)) != -1) {
+                                    out.write(buffer, 0, read);
+                                }
+                            }
+                            tmp.renameTo(subTarget);
+                            if (file.endsWith(".py") || file.endsWith(".sh")) {
+                                subTarget.setExecutable(true, false);
+                            }
+                            Log.i(TAG, "seeded skill asset: " + subTarget);
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "failed seeding asset tree " + assetDir + ": " + e.getMessage());
+        }
     }
 }

@@ -14,10 +14,15 @@ def pack_seed(seed_dir: str, dest_seed_dir: str) -> list:
     copied = []
     for item in sorted(os.listdir(seed_dir)):
         src = os.path.join(seed_dir, item)
+        dst = os.path.join(dest_seed_dir, item)
         if os.path.isfile(src):
-            dst = os.path.join(dest_seed_dir, item)
             shutil.copyfile(src, dst)
             copied.append(item)
+        elif os.path.isdir(src):
+            if os.path.exists(dst):
+                shutil.rmtree(dst)
+            shutil.copytree(src, dst)
+            copied.append(item + "/")
             
     return copied
 
