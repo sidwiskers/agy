@@ -37,6 +37,8 @@ public final class NotificationHandler {
             NotificationChannel alerts = new NotificationChannel(
                     CHANNEL_ALERTS, "Antigravity Alerts", NotificationManager.IMPORTANCE_HIGH);
             alerts.setDescription("High-priority alerts and task completions");
+            alerts.enableVibration(true);
+            alerts.enableLights(true);
             manager.createNotificationChannel(alerts);
         }
     }
@@ -74,6 +76,12 @@ public final class NotificationHandler {
                 icon = android.R.drawable.ic_dialog_info;
             }
 
+            android.content.Intent openIntent = new android.content.Intent(context, com.agy.ui.MainActivity.class);
+            openIntent.setFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK | android.content.Intent.FLAG_ACTIVITY_SINGLE_TOP | android.content.Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            android.app.PendingIntent pendingIntent = android.app.PendingIntent.getActivity(
+                    context, id, openIntent,
+                    android.app.PendingIntent.FLAG_UPDATE_CURRENT | (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M ? android.app.PendingIntent.FLAG_IMMUTABLE : 0));
+
             Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                     ? new Notification.Builder(context, channel)
                     : new Notification.Builder(context);
@@ -81,8 +89,15 @@ public final class NotificationHandler {
             builder.setContentTitle(title)
                     .setContentText(message)
                     .setSmallIcon(icon)
+                    .setContentIntent(pendingIntent)
                     .setOngoing(ongoing)
                     .setAutoCancel(!ongoing);
+
+            if (CHANNEL_ALERTS.equals(channel) || !ongoing) {
+                builder.setPriority(Notification.PRIORITY_MAX)
+                        .setDefaults(Notification.DEFAULT_ALL)
+                        .setVisibility(Notification.VISIBILITY_PUBLIC);
+            }
 
             if (progress >= 0) {
                 builder.setProgress(100, Math.min(100, Math.max(0, progress)), false);

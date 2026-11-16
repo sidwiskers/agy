@@ -50,8 +50,13 @@ if (!window.nativeNotifications) {
       var title = notification.title || 'Antigravity';
       var body = notification.body || notification.message || 'Task completed';
       var text = title + ': ' + body;
+      var cascadeId = (notification.payload && notification.payload.cascadeId) || '';
 
-      if (window.Android && typeof window.Android.showToast === 'function') {
+      if (window.Android && typeof window.Android.postNotificationWithPayload === 'function') {
+        window.Android.postNotificationWithPayload(title, body, true, cascadeId);
+      } else if (window.Android && typeof window.Android.postFloatingNotification === 'function') {
+        window.Android.postFloatingNotification(title, body, true);
+      } else if (window.Android && typeof window.Android.showToast === 'function') {
         window.Android.showToast(text, true);
       } else {
         try {
@@ -85,6 +90,15 @@ if (!window.nativeNotifications) {
       return Promise.resolve(true);
     }
   };
+
+  window.addEventListener('agy:notification-clicked', function(e) {
+    var id = e && e.detail && e.detail.cascadeId;
+    for (var i = 0; i < notificationListeners.length; i++) {
+      try {
+        notificationListeners[i]({ cascadeId: id });
+      } catch (_) {}
+    }
+  });
 }
 
 // Android Share Sheet Receiver (ACTION_SEND)
@@ -261,6 +275,8 @@ if (!window.nativeNotifications) {
     return "Generating response...";
   }
 
+  var _lastWasGenerating = false;
+
   function updateAgentProgressFromState(state) {
     if (!state || typeof state !== "object") return;
 
@@ -284,6 +300,17 @@ if (!window.nativeNotifications) {
     if (_lastReportedTitle === title && _lastReportedStatus === description && _lastReportedGenerating === isRunning) {
       return;
     }
+
+    // Safety net: when transitioning from generating to completed, trigger native floating notification
+    if (_lastWasGenerating && !isRunning && (state.status === 1 || state.fullyIdle === true)) {
+      if (window.Android && typeof window.Android.postFloatingNotification === "function") {
+        try {
+          window.Android.postFloatingNotification("Antigravity", "Task completed", true);
+        } catch (_) {}
+      }
+    }
+    _lastWasGenerating = isRunning;
+
     _lastReportedTitle = title;
     _lastReportedStatus = description;
     _lastReportedGenerating = isRunning;

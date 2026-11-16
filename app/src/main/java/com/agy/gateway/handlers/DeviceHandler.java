@@ -127,6 +127,7 @@ public final class DeviceHandler {
                     }
                 }
             });
+            com.agy.core.FloatingNotification.show(context, "Antigravity", message, playSound);
             resp.put("ok", true);
         } catch (Exception e) {
             try {

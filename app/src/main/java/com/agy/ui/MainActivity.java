@@ -171,6 +171,7 @@ public class MainActivity extends Activity
         startCoreService();
         acquireUiWakeLock();
         handleShareIntent(getIntent());
+        handleNotificationClickIntent(getIntent());
     }
 
     private void startCoreService() {
@@ -332,6 +333,27 @@ public class MainActivity extends Activity
         super.onNewIntent(intent);
         setIntent(intent);
         handleShareIntent(intent);
+        handleNotificationClickIntent(intent);
+    }
+
+    private void handleNotificationClickIntent(Intent intent) {
+        if (intent == null) return;
+        if ("com.agy.action.NOTIFICATION_CLICK".equals(intent.getAction())) {
+            final String cascadeId = intent.getStringExtra("cascade_id");
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (webViewHost != null && webViewHost.getWebView() != null) {
+                        String idParam = (cascadeId != null) ? org.json.JSONObject.quote(cascadeId) : "null";
+                        webViewHost.getWebView().evaluateJavascript(
+                                "(function(){ " +
+                                "  try { window.dispatchEvent(new CustomEvent('agy:notification-clicked', { detail: { cascadeId: " + idParam + " } })); } catch(e){} " +
+                                "})();",
+                                null);
+                    }
+                }
+            });
+        }
     }
 
     private void handleShareIntent(Intent intent) {

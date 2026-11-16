@@ -101,25 +101,36 @@ public final class AndroidBridge {
 
     @JavascriptInterface
     public void showToast(final String message, final boolean playSound) {
+        showFloatingNotification("Antigravity", message, playSound, null);
+    }
+
+    @JavascriptInterface
+    public void postNotification(final String title, final String message, final boolean playSound) {
+        showFloatingNotification(title, message, playSound, null);
+    }
+
+    @JavascriptInterface
+    public void postNotificationWithPayload(final String title, final String message, final boolean playSound, final String cascadeId) {
+        showFloatingNotification(title, message, playSound, cascadeId);
+    }
+
+    private void showFloatingNotification(final String title, final String message, final boolean playSound, final String cascadeId) {
         final MainActivity act = activityRef != null ? activityRef.get() : MainActivity.activeActivity;
+        final Context ctx = act != null ? act : appContext;
         if (act != null) {
             act.runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        android.widget.Toast.makeText(act, message, android.widget.Toast.LENGTH_LONG).show();
+                        String toastText = (title != null && !title.trim().isEmpty() && !"Antigravity".equalsIgnoreCase(title.trim()))
+                                ? (title + ": " + message) : message;
+                        android.widget.Toast.makeText(act, toastText, android.widget.Toast.LENGTH_LONG).show();
                     } catch (Exception ignored) {}
-                    if (playSound) {
-                        try {
-                            android.net.Uri uri = android.media.RingtoneManager.getDefaultUri(android.media.RingtoneManager.TYPE_NOTIFICATION);
-                            android.media.Ringtone r = android.media.RingtoneManager.getRingtone(act, uri);
-                            if (r != null) {
-                                r.play();
-                            }
-                        } catch (Exception ignored) {}
-                    }
                 }
             });
+        }
+        if (ctx != null) {
+            com.agy.core.FloatingNotification.show(ctx, title, message, playSound, cascadeId);
         }
     }
 
