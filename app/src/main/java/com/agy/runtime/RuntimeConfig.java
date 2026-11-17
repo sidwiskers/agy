@@ -18,6 +18,24 @@ public final class RuntimeConfig {
     private RuntimeConfig() {
     }
 
+    /** Returns the active core/IDE version, allowing dynamic override via ~/.gemini/config/core_version.txt */
+    public static String coreVersion(Context appContext) {
+        if (appContext != null) {
+            try {
+                java.io.File overrideFile = new java.io.File(appContext.getFilesDir(), ".gemini/config/core_version.txt");
+                if (overrideFile.isFile() && overrideFile.canRead()) {
+                    byte[] bytes = java.nio.file.Files.readAllBytes(overrideFile.toPath());
+                    String text = new String(bytes, java.nio.charset.StandardCharsets.UTF_8).trim();
+                    if (!text.isEmpty()) {
+                        return text;
+                    }
+                }
+            } catch (Exception ignored) {
+            }
+        }
+        return CORE_VERSION;
+    }
+
     /** The port from res/values/gen.xml, else the BuildConfig default. */
     public static int httpsPort(Context appContext) {
         if (appContext != null) {

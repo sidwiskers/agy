@@ -125,7 +125,7 @@ public final class RuntimeManager {
         cmd.add("--subclient_type");
         cmd.add("hub");
         cmd.add("--override_ide_version");
-        cmd.add(CORE_VERSION);
+        cmd.add(RuntimeConfig.coreVersion(appContext));
         cmd.add("--override_user_agent_name");
         cmd.add("antigravity");
         cmd.add("--https_server_port");

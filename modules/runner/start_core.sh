@@ -124,7 +124,7 @@ CMD+=(
     --standalone
     --override_ide_name "antigravity"
     --subclient_type "hub"
-    --override_ide_version "2.11.0"
+    --override_ide_version "2.31.2"
     --override_user_agent_name "antigravity"
     --https_server_port "$PORT"
     --csrf_token "$CSRF_TOKEN"

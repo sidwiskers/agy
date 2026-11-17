@@ -33,7 +33,7 @@ public final class EngineConfigJson {
             o.put("csrfToken", engine.getCsrfToken());
             o.put("appVersion", RuntimeConfig.APP_VERSION_NAME);
             o.put("appVersionCode", RuntimeConfig.APP_VERSION_CODE);
-            o.put("coreVersion", RuntimeConfig.CORE_VERSION);
+            o.put("coreVersion", RuntimeConfig.coreVersion(appContext));
             o.put("releaseChannel", RuntimeConfig.DEBUG ? "dev" : "stable");
             o.put("devMode", RuntimeConfig.DEBUG);
             o.put("enginePort", runtime.getHttpsPort());
